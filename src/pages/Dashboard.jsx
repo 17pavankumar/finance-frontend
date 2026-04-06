@@ -6,16 +6,17 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, Legend
 } from 'recharts';
+import { useCurrency, formatCurrency } from '../App';
 
 // ── Custom Tooltip ────────────────────────────────────────────
-const ChartTooltip = ({ active, payload, label }) => {
+const ChartTooltip = ({ active, payload, label, currencyCode }) => {
     if (!active || !payload?.length) return null;
     return (
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
             <p style={{ fontWeight: 700, marginBottom: 6, color: '#0f172a' }}>{label}</p>
             {payload.map(p => (
                 <p key={p.name} style={{ color: p.color, margin: '2px 0' }}>
-                    {p.name}: <strong>${Number(p.value).toLocaleString()}</strong>
+                    {p.name}: <strong>{formatCurrency(p.value, currencyCode)}</strong>
                 </p>
             ))}
         </div>
@@ -40,7 +41,8 @@ const StatCard = ({ label, value, icon, variant }) => (
 // ── Dashboard ────────────────────────────────────────────────
 const Dashboard = () => {
     const [metrics, setMetrics] = useState([]);
-    const [summary, setSummary] = useState({ total_income: 0, total_expenses: 0, balance: 0 });
+    const [summary, setSummary] = useState({ total_income: 0, total_expenses: 0, today_expenses: 0, balance: 0 });
+    const { currency } = useCurrency();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -59,7 +61,7 @@ const Dashboard = () => {
         load();
     }, [navigate]);
 
-    const fmt = n => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 0 })}`;
+    const fmt = n => formatCurrency(n, currency);
 
     return (
         <>
@@ -69,9 +71,10 @@ const Dashboard = () => {
             </div>
 
             {/* Stat Cards */}
-            <div className="stat-cards">
+            <div className="stat-cards" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                 <StatCard label="Total Income"   value={fmt(summary.total_income)}   icon="bi-arrow-up-circle-fill"   variant="green" />
                 <StatCard label="Total Expenses" value={fmt(summary.total_expenses)} icon="bi-arrow-down-circle-fill" variant="red" />
+                <StatCard label="Today's Expenses" value={fmt(summary.today_expenses)} icon="bi-cart-x" variant="red" />
                 <StatCard label="Net Balance"    value={fmt(summary.balance)}         icon="bi-wallet2"                variant="indigo" />
             </div>
 
@@ -87,7 +90,7 @@ const Dashboard = () => {
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                            <Tooltip content={<ChartTooltip />} />
+                            <Tooltip content={<ChartTooltip currencyCode={currency} />} />
                             <Legend wrapperStyle={{ fontSize: 13 }} />
                             <Bar dataKey="revenue"  name="Revenue"  fill="#4f46e5" radius={[5, 5, 0, 0]} />
                             <Bar dataKey="expenses" name="Expenses" fill="#ef4444" radius={[5, 5, 0, 0]} />
@@ -114,7 +117,7 @@ const Dashboard = () => {
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                            <Tooltip content={<ChartTooltip />} />
+                            <Tooltip content={<ChartTooltip currencyCode={currency} />} />
                             <Area
                                 type="monotone"
                                 dataKey="profit"

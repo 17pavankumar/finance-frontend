@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -11,9 +11,35 @@ const PrivateRoute = ({ children }) => {
 };
 
 // ──────────────────────────────────────────────────────────────
+// Currency Context
+// ──────────────────────────────────────────────────────────────
+export const CurrencyContext = createContext();
+
+export const useCurrency = () => useContext(CurrencyContext);
+
+// Global Formatter function generator
+export const formatCurrency = (amount, currencyCode) => {
+    // Basic mapping for locales
+    const locales = {
+        'USD': 'en-US',
+        'INR': 'en-IN',
+        'EUR': 'de-DE',
+        'GBP': 'en-GB'
+    };
+    return new Intl.NumberFormat(locales[currencyCode] || 'en-US', {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    }).format(amount);
+};
+
+// ──────────────────────────────────────────────────────────────
 // Sidebar
 // ──────────────────────────────────────────────────────────────
 const Sidebar = ({ open, onClose }) => {
+    const { currency, setCurrency } = useCurrency();
+
     const handleLogout = () => {
         localStorage.clear();
         window.location.href = '/login';
@@ -29,12 +55,29 @@ const Sidebar = ({ open, onClose }) => {
             />
 
             <aside className={`sidebar ${open ? 'open' : ''}`}>
-                {/* Brand */}
                 <div className="sidebar-brand">
                     <div className="brand-logo">
                         <i className="bi bi-graph-up-arrow"></i>
                     </div>
                     <span className="brand-name">FinanceApp</span>
+                </div>
+
+                {/* Currency Selector */}
+                <div style={{ padding: '0 20px 10px', marginTop: '14px' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--sidebar-muted)', marginBottom: 6, letterSpacing: 0.8 }}>
+                        Currency
+                    </div>
+                    <select 
+                        className="select" 
+                        style={{ backgroundColor: 'transparent', border: '1px solid var(--sidebar-border)', color: '#fff' }}
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                    >
+                        <option value="USD" style={{color:'#000'}}>🇺🇸 USD ($)</option>
+                        <option value="INR" style={{color:'#000'}}>🇮🇳 INR (₹)</option>
+                        <option value="EUR" style={{color:'#000'}}>🇪🇺 EUR (€)</option>
+                        <option value="GBP" style={{color:'#000'}}>🇬🇧 GBP (£)</option>
+                    </select>
                 </div>
 
                 {/* Navigation */}
@@ -97,27 +140,36 @@ function AppInner() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { pathname } = useLocation();
 
+    // Default to USD or localStorage
+    const [currency, setCurrency] = useState(() => localStorage.getItem('currency') || 'USD');
+
+    useEffect(() => {
+        localStorage.setItem('currency', currency);
+    }, [currency]);
+
     const isLogin = pathname === '/login';
 
     return (
-        <div className="layout">
-            {!isLogin && (
-                <>
-                    <Topbar onMenu={() => setSidebarOpen(true)} />
-                    <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-                </>
-            )}
+        <CurrencyContext.Provider value={{ currency, setCurrency }}>
+            <div className="layout">
+                {!isLogin && (
+                    <>
+                        <Topbar onMenu={() => setSidebarOpen(true)} />
+                        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                    </>
+                )}
 
-            <div className={isLogin ? '' : 'page-body'}>
-                <div className={isLogin ? '' : 'main'}>
-                    <Routes>
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-                        <Route path="/records" element={<PrivateRoute><FinanceRecords /></PrivateRoute>} />
-                    </Routes>
+                <div className={isLogin ? '' : 'page-body'}>
+                    <div className={isLogin ? '' : 'main'}>
+                        <Routes>
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+                            <Route path="/records" element={<PrivateRoute><FinanceRecords /></PrivateRoute>} />
+                        </Routes>
+                    </div>
                 </div>
             </div>
-        </div>
+        </CurrencyContext.Provider>
     );
 }
 
