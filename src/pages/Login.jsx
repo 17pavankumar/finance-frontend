@@ -32,7 +32,20 @@ const Login = () => {
                 navigate('/');
             }
         } catch (err) {
-            setError(err.response?.data?.error || err.response?.data?.detail || 'An error occurred. Please try again.');
+            if (err.response?.data) {
+                const data = err.response.data;
+                if (data.error) setError(data.error);
+                else if (data.detail) setError(data.detail);
+                else if (typeof data === 'object') {
+                    // Grab the first array message from the standard DRF dictionary!
+                    const firstKey = Object.keys(data)[0];
+                    setError(`${firstKey}: ${data[firstKey][0]}`);
+                } else {
+                    setError('An error occurred. Please try again.');
+                }
+            } else {
+                setError('Network error. Check your connection.');
+            }
         } finally {
             setLoading(false);
         }
